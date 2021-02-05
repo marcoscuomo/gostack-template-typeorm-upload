@@ -1,8 +1,9 @@
-// import AppError from '../errors/AppError';
-import { getRepository } from 'typeorm';
+import AppError from '../errors/AppError';
+import { getRepository, getCustomRepository } from 'typeorm';
 
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
+import TransactionsRepository from '../repositories/TransactionsRepository';
 
 interface RequestDTO{
   title: string;
@@ -17,6 +18,17 @@ class CreateTransactionService {
     // Verificar se a categoria já existe
     const categoryRepository = getRepository(Category);
     const transactionRepository = getRepository(Transaction);
+
+    //Verificar se o tipo de transação outcome extrapola total em caixa
+    if(type == 'outcome'){
+      const transactionsRepository = getCustomRepository(TransactionsRepository);
+      const transactions = await transactionsRepository.find();
+      const balance = await transactionsRepository.getBalance(transactions);
+      if(value > balance.total){
+        throw new AppError('value cannot be higher than the cash value', 400);
+      }
+
+    }
 
     const categoryTransaction = await categoryRepository.findOne({
       where: { title: category }
